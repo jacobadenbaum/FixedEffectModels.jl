@@ -4,10 +4,10 @@ abstract type FixedEffectProblem end
 ##
 ## A FixedEffectProblem must define three methods:
 ##
-## solve_residuals! 
+## solve_residuals!
 ## solve_coefficients!
 ## get_fes (accessor)
-## 
+##
 ##############################################################################
 
 
@@ -26,8 +26,8 @@ function residualize!(X::Union{AbstractVector{Float64}, Matrix{Float64}}, fep::F
     end
 end
 
-function residualize!(::Array, ::Nothing, 
-                      ::Vector{Int}, ::Vector{Bool}; 
+function residualize!(::Array, ::Nothing,
+                      ::Vector{Int}, ::Vector{Bool};
                       kwargs...)
     nothing
 end
@@ -66,8 +66,8 @@ end
 function getfe!(fep::FixedEffectProblem, b::Vector{Float64}; kwargs...)
     # solve Ax = b
     x, iterations, converged = solve_coefficients!(fep, b; kwargs...)
-    if !converged 
-       warn("getfe did not converge")
+    if !converged
+       @warn("getfe did not converge")
     end
     # The solution is generally not unique. Find connected components and scale accordingly
     findintercept = findall(fe -> isa(fe.interaction, Ones), get_fes(fep))
@@ -120,9 +120,9 @@ function initialize_refs(fes::AbstractVector{FixedEffect})
 end
 
 # Breadth-first search
-function connectedcomponent!(component::Vector{Set{Int}}, 
-    visited::Vector{Bool}, i::Integer, refs::Matrix{Int}, 
-    where::Vector{Vector{Set{Int}}}) 
+function connectedcomponent!(component::Vector{Set{Int}},
+    visited::Vector{Bool}, i::Integer, refs::Matrix{Int},
+    where::Vector{Vector{Set{Int}}})
     tovisit = Set{Int}(i)
     while !isempty(tovisit)
         i = pop!(tovisit)
@@ -145,7 +145,7 @@ function connectedcomponent!(component::Vector{Set{Int}},
     end
 end
 
-function rescale!(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem, 
+function rescale!(fev::Vector{Vector{Float64}}, fep::FixedEffectProblem,
                   findintercept,
                   components::Vector{Vector{Set{Int}}})
     fes = get_fes(fep)

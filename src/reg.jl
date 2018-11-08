@@ -40,18 +40,18 @@ function reg(df::AbstractDataFrame, m::Model; kwargs...)
     reg(df, m.f; m.dict..., kwargs...)
 end
 
-function reg(df::AbstractDataFrame, f::Formula; 
-    fe::Union{Symbol, Expr, Nothing} = nothing, 
-    vcov::Union{Symbol, Expr, Nothing} = :(simple()), 
-    weights::Union{Symbol, Expr, Nothing} = nothing, 
-    subset::Union{Symbol, Expr, Nothing} = nothing, 
-    maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0, 
+function reg(df::AbstractDataFrame, f::Formula;
+    fe::Union{Symbol, Expr, Nothing} = nothing,
+    vcov::Union{Symbol, Expr, Nothing} = :(simple()),
+    weights::Union{Symbol, Expr, Nothing} = nothing,
+    subset::Union{Symbol, Expr, Nothing} = nothing,
+    maxiter::Integer = 10000, tol::Real= 1e-8, df_add::Integer = 0,
     save::Bool = false,  method::Symbol = :lsmr
    )
     feformula = fe
     if isa(vcov, Symbol)
         vcovformula = VcovFormula(Val{vcov})
-    else 
+    else
         vcovformula = VcovFormula(Val{vcov.args[1]}, (vcov.args[i] for i in 2:length(vcov.args))...)
     end
 
@@ -97,7 +97,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     all_vars = unique(Symbol.(all_vars))
 
 
-    
+
     esample = completecases(df[all_vars])
 
     if has_weights
@@ -130,7 +130,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     if has_absorb
         fixedeffects = FixedEffect[x[esample] for x in fixedeffects]
         # in case some FixedEffect does not have interaction, remove the intercept
-        if any([typeof(f.interactionname) <: Nothing for f in fixedeffects]) 
+        if any([typeof(f.interactionname) <: Nothing for f in fixedeffects])
             rt.intercept = false
             has_intercept = true
         end
@@ -178,7 +178,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     coef_names = coefnames(mf)
     if isempty(mf.terms.terms) && mf.terms.intercept == false
         Xexo = Matrix{Float64}(undef, sum(nonmissing(mf)), 0)
-    else    
+    else
         Xexo = ModelMatrix(mf).m
     end
     Xexo .= Xexo .* sqrtw
@@ -187,7 +187,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
     residualize!(Xexo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
 
-    
+
     # Obtain Xendo and Z
     if has_iv
         mf = ModelFrame2(endo_terms, df, esample)
@@ -198,11 +198,11 @@ function reg(df::AbstractDataFrame, f::Formula;
             oldX = hcat(Xexo, Xendo)
         end
         residualize!(Xendo, pfe, iterations, converged; maxiter = maxiter, tol = tol)
-        
+
         mf = ModelFrame2(iv_terms, df, esample)
         Z = ModelMatrix(mf).m
         Z .= Z .* sqrtw
-        residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)   
+        residualize!(Z, pfe, iterations, converged; maxiter = maxiter, tol = tol)
     end
 
     # iter and convergence
@@ -210,7 +210,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         iterations = maximum(iterations)
         converged = all(converged)
         if converged == false
-            warn("convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol.")
+            @warn("convergence not achieved in $(iterations) iterations; try increasing maxiter or decreasing tol.")
         end
     end
 
@@ -285,7 +285,7 @@ function reg(df::AbstractDataFrame, f::Formula;
             augmentdf[:residuals] = residuals ./ sqrtw
         else
             augmentdf[:residuals] =  Vector{Union{Missing, Float64}}(missing, length(esample))
-            augmentdf[esample, :residuals] = residuals ./ sqrtw 
+            augmentdf[esample, :residuals] = residuals ./ sqrtw
         end
         if has_absorb
             if !all(basecoef)
@@ -307,7 +307,7 @@ function reg(df::AbstractDataFrame, f::Formula;
         df_intercept = 1
     end
     df_absorb = 0
-    if has_absorb 
+    if has_absorb
         # better adjustment of df for clustered errors + fe: adjust only if fe is not fully nested in a cluster variable:
         for fe in fixedeffects
             if isa(vcovformula, VcovClusterFormula) && any([isnested(fe.refs,vcov_method_data.clusters[clustervar].refs) for clustervar in names(vcov_method_data.clusters)])
@@ -341,7 +341,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     # Compute Fstat of First Stage
     if has_iv
         Pip = Pi[(size(Pi, 1) - size(Z_res, 2) + 1):end, :]
-        (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip, 
+        (F_kp, p_kp) = ranktest!(Xendo_res, Z_res, Pip,
                                   vcov_method_data, nvars, df_absorb)
     end
 
@@ -352,7 +352,7 @@ function reg(df::AbstractDataFrame, f::Formula;
     ##############################################################################
 
     # add omitted variables
-    if !all(basecoef) 
+    if !all(basecoef)
         newcoef = fill(zero(Float64), length(basecoef))
         newmatrix_vcov = fill(NaN, (length(basecoef), length(basecoef)))
         newindex = [searchsortedfirst(cumsum(basecoef), i) for i in 1:length(coef)]
@@ -367,22 +367,22 @@ function reg(df::AbstractDataFrame, f::Formula;
     end
 
     # return
-    if !has_iv && !has_absorb 
-        return RegressionResult(coef, matrix_vcov, esample, augmentdf, 
-                                coef_names, yname, f, nobs, dof_residual, 
+    if !has_iv && !has_absorb
+        return RegressionResult(coef, matrix_vcov, esample, augmentdf,
+                                coef_names, yname, f, nobs, dof_residual,
                                 rss, tss, r2, adjr2, F, p)
     elseif has_iv && !has_absorb
-        return RegressionResultIV(coef, matrix_vcov, esample, augmentdf, 
+        return RegressionResultIV(coef, matrix_vcov, esample, augmentdf,
                                   coef_names, yname, f, nobs, dof_residual,
                                   rss, tss,  r2, adjr2, F, p, F_kp, p_kp)
     elseif !has_iv && has_absorb
-        return RegressionResultFE(coef, matrix_vcov, esample, augmentdf, 
-                                  coef_names, yname, f, feformula, nobs, dof_residual, 
+        return RegressionResultFE(coef, matrix_vcov, esample, augmentdf,
+                                  coef_names, yname, f, feformula, nobs, dof_residual,
                                   rss, tss, r2, adjr2, r2_within, F, p, iterations, converged)
-    elseif has_iv && has_absorb 
-        return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf, 
-                                   coef_names, yname, f, feformula, nobs, dof_residual, 
-                                   rss, tss, r2, adjr2, r2_within, F, p, F_kp, p_kp, 
+    elseif has_iv && has_absorb
+        return RegressionResultFEIV(coef, matrix_vcov, esample, augmentdf,
+                                   coef_names, yname, f, feformula, nobs, dof_residual,
+                                   rss, tss, r2, adjr2, r2_within, F, p, F_kp, p_kp,
                                    iterations, converged)
     end
 end
@@ -397,8 +397,8 @@ end
 ##
 ##############################################################################
 
-function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64}, 
-    nobs::Int, hasintercept::Bool, 
+function compute_Fstat(coef::Vector{Float64}, matrix_vcov::Matrix{Float64},
+    nobs::Int, hasintercept::Bool,
     vcov_method_data::AbstractVcovMethod, vcov_data::VcovData)
     coefF = copy(coef)
     # TODO: check I can't do better

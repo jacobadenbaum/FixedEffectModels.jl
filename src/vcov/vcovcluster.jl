@@ -11,7 +11,7 @@ struct VcovClusterMethod <: AbstractVcovMethod
 end
 
 
-function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula) 
+function VcovMethod(df::AbstractDataFrame, vcovcluster::VcovClusterFormula)
     clusters = vcovcluster._
     vclusters = DataFrame(Vector, size(df, 1), 0)
     for c in clusters
@@ -77,7 +77,7 @@ function helper_cluster(X::Matrix{Float64}, res::Union{Vector{Float64}, Matrix{F
     S2 = X2' * X2
     if length(f.pool) < size(X, 1)
         # if only one obs by pool, for instance cluster(year state)
-        # use White, as in Petersen (2009) & Thomson (2011) 
+        # use White, as in Petersen (2009) & Thomson (2011)
         rmul!(S2, length(f.pool) / (length(f.pool) - 1))
     end
     return S2
@@ -88,7 +88,7 @@ function pinvertible(A::Matrix, tol = eps(real(float(one(eltype(A))))))
     eigval, eigvect = eigen(Symmetric(A))
     small = eigval .<= tol
     if any(small)
-        warn("estimated covariance matrix of moment conditions not of full rank.
+        @warn("estimated covariance matrix of moment conditions not of full rank.
                  model tests should be interpreted with caution.")
         eigval[small] = 0
         return  eigvect' * Diagonal(eigval) * eigvect
